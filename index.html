@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MedRush — Emergency Hospital Finder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --red:      #E8271A;
+      --red-dim:  #9B1A11;
+      --red-glow: rgba(232,39,26,0.18);
+      --ink:      #0D0D0D;
+      --ink-2:    #1C1C1C;
+      --ink-3:    #2A2A2A;
+      --muted:    #9A9A9A;
+      --border:   rgba(255,255,255,0.10);
+      --surface:  rgba(20,20,20,0.78);
+      --white:    #F5F5F5;
+      --green:    #22C55E;
+      --amber:    #F59E0B;
+      --font:     'Space Grotesk', sans-serif;
+      --mono:     'DM Mono', monospace;
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--ink);
+      color: var(--white);
+      font-family: var(--font);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* ── SOOTHING BLURRED BACKGROUND ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      background-image: url('https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=1920&q=80');
+      background-size: cover;
+      background-position: center;
+      filter: blur(14px) brightness(0.35) saturate(1.1);
+      transform: scale(1.08); /* prevents blur edges */
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background: radial-gradient(
+        ellipse at top,
+        rgba(232,39,26,0.10) 0%,
+        rgba(13,13,13,0.85) 50%,
+        rgba(13,13,13,0.95) 100%
+      );
+    }
+
+    /* HEADER */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 40px; border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(13,13,13,0.72);
+      backdrop-filter: blur(18px) saturate(1.2);
+      -webkit-backdrop-filter: blur(18px) saturate(1.2);
+    }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.15rem; letter-spacing: -0.5px; }
+    .logo-cross { width: 28px; height: 28px; background: var(--red); border-radius: 6px; display: grid; place-items: center; flex-shrink: 0; box-shadow: 0 0 20px rgba(232,39,26,0.4); }
+    .logo-cross::before { content: '+'; color: #fff; font-size: 1.3rem; line-height: 1; }
+    .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 0 0 rgba(34,197,94,0.4); animation: pulse 2s infinite; }
+    @keyframes pulse {
+      0%   { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
+      70%  { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+      100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+    }
+    .status-bar { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+
+    /* HERO */
+    .hero { padding: 64px 40px 48px; max-width: 740px; margin: 0 auto; text-align: center; }
+    .eyebrow { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--red); margin-bottom: 20px; }
+    h1 { font-size: clamp(2.2rem, 5vw, 3.4rem); font-weight: 700; line-height: 1.1; letter-spacing: -1.5px; margin-bottom: 18px; text-shadow: 0 2px 30px rgba(0,0,0,0.5); }
+    h1 span { color: var(--red); position: relative; }
+    h1 span::after { content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 3px; background: var(--red); border-radius: 2px; }
+    .hero-sub { color: #C4C4C4; font-size: 1rem; line-height: 1.65; max-width: 480px; margin: 0 auto 40px; }
+
+    /* SEARCH CARD — frosted glass */
+    .search-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 680px;
+      margin: 0 auto 32px;
+      backdrop-filter: blur(20px) saturate(1.3);
+      -webkit-backdrop-filter: blur(20px) saturate(1.3);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    .location-strip { display: flex; align-items: center; gap: 10px; background: rgba(28,28,28,0.7); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; margin-bottom: 20px; font-family: var(--mono); font-size: 0.8rem; color: var(--muted); transition: border-color 0.2s; }
+    .location-icon { font-size: 1rem; }
+    .location-text { flex: 1; }
+    .location-btn { background: none; border: none; color: var(--red); font-family: var(--font); font-size: 0.78rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    .location-btn:hover { text-decoration: underline; }
+    .input-label { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; display: block; }
+    .emergency-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 8px; margin-bottom: 20px; }
+    .em-chip { padding: 10px 12px; border: 1px solid var(--border); border-radius: 9px; background: rgba(28,28,28,0.6); color: var(--muted); font-size: 0.82rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.15s; user-select: none; }
+    .em-chip:hover { border-color: rgba(232,39,26,0.4); color: var(--white); transform: translateY(-1px); }
+    .em-chip.active { border-color: var(--red); background: rgba(232,39,26,0.18); color: var(--white); box-shadow: 0 0 16px rgba(232,39,26,0.25); }
+    .em-chip .chip-icon { font-size: 1.1rem; }
+    .custom-input-wrap { position: relative; margin-bottom: 20px; }
+    .custom-input { width: 100%; background: rgba(28,28,28,0.7); border: 1px solid var(--border); border-radius: 10px; padding: 13px 16px; color: var(--white); font-family: var(--font); font-size: 0.93rem; outline: none; transition: border-color 0.2s; }
+    .custom-input::placeholder { color: var(--muted); }
+    .custom-input:focus { border-color: var(--red); }
+    .search-btn { width: 100%; background: var(--red); color: #fff; border: none; border-radius: 10px; padding: 15px; font-family: var(--font); font-size: 1rem; font-weight: 700; letter-spacing: -0.3px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s, transform 0.1s; box-shadow: 0 8px 24px rgba(232,39,26,0.3); }
+    .search-btn:hover { background: #c91f14; box-shadow: 0 12px 32px rgba(232,39,26,0.45); }
+    .search-btn:active { transform: scale(0.99); }
+
+    /* RESULTS */
+    #results { max-width: 680px; margin: 0 auto 80px; }
+    .results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding: 0 4px; }
+    .results-title { font-size: 0.78rem; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+    .results-count { font-family: var(--mono); font-size: 0.72rem; color: var(--red); background: var(--red-glow); padding: 3px 10px; border-radius: 20px; }
+
+    .hospital-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px 22px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      transition: border-color 0.2s, transform 0.15s;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+    .hospital-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.18); }
+    .hospital-card.top-pick { border-color: var(--red); background: linear-gradient(135deg, rgba(232,39,26,0.18) 0%, rgba(20,20,20,0.78) 60%); }
+    .hospital-rank { min-width: 36px; height: 36px; border-radius: 8px; background: var(--ink-3); display: grid; place-items: center; font-family: var(--mono); font-size: 0.75rem; color: var(--muted); flex-shrink: 0; }
+    .hospital-card.top-pick .hospital-rank { background: var(--red); color: #fff; }
+    .hospital-body { flex: 1; min-width: 0; }
+    .hospital-name { font-size: 1rem; font-weight: 700; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hospital-specialty { font-size: 0.78rem; color: var(--red); font-weight: 600; margin-bottom: 6px; font-family: var(--mono); }
+    .hospital-meta { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+    .meta-item { font-size: 0.78rem; color: var(--muted); display: flex; align-items: center; gap: 4px; }
+    .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 0.68rem; font-family: var(--mono); padding: 2px 8px; border-radius: 20px; font-weight: 500; }
+    .badge-green { background: rgba(34,197,94,0.15); color: var(--green); }
+    .badge-amber { background: rgba(245,158,11,0.15); color: var(--amber); }
+    .hospital-actions { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+    .btn-maps { display: flex; align-items: center; gap: 6px; background: var(--red); color: #fff; border: none; padding: 9px 14px; border-radius: 8px; font-family: var(--font); font-size: 0.8rem; font-weight: 600; cursor: pointer; text-decoration: none; white-space: nowrap; transition: background 0.15s; }
+    .btn-maps:hover { background: #c91f14; }
+    .btn-dir { display: flex; align-items: center; gap: 6px; background: rgba(42,42,42,0.8); color: var(--white); border: 1px solid var(--border); padding: 9px 14px; border-radius: 8px; font-family: var(--font); font-size: 0.8rem; font-weight: 600; cursor: pointer; text-decoration: none; white-space: nowrap; transition: border-color 0.15s; }
+    .btn-dir:hover { border-color: rgba(255,255,255,0.3); }
+
+    /* LOADING */
+    .loading-overlay { text-align: center; padding: 60px 20px; }
+    .ecg-line { width: 200px; height: 48px; margin: 0 auto 24px; }
+    .ecg-line svg { width: 100%; height: 100%; }
+    .ecg-path { stroke: var(--red); stroke-width: 2; fill: none; stroke-dasharray: 300; stroke-dashoffset: 300; animation: ecgDraw 1.2s ease forwards infinite; }
+    @keyframes ecgDraw { to { stroke-dashoffset: 0; } }
+    .loading-text { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; }
+
+    /* DISCLAIMER */
+    .disclaimer { max-width: 680px; margin: 0 auto 28px; background: rgba(245,158,11,0.10); border: 1px solid rgba(245,158,11,0.25); border-radius: 10px; padding: 14px 18px; font-size: 0.78rem; color: var(--amber); display: flex; gap: 10px; align-items: flex-start; backdrop-filter: blur(10px); }
+    .disclaimer .icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+    /* FOOTER */
+    footer { border-top: 1px solid var(--border); padding: 24px 40px; display: flex; align-items: center; justify-content: space-between; font-family: var(--mono); font-size: 0.72rem; color: var(--muted); background: rgba(13,13,13,0.6); backdrop-filter: blur(12px); }
+
+    /* RESPONSIVE */
+    @media (max-width: 600px) {
+      header { padding: 16px 20px; }
+      .hero { padding: 40px 20px 32px; }
+      .search-card { padding: 22px 18px; margin: 0 16px 28px; }
+      #results { margin: 0 16px 60px; }
+      .disclaimer { margin: 0 16px 24px; }
+      .hospital-card { flex-wrap: wrap; }
+      .hospital-actions { flex-direction: row; width: 100%; }
+      .btn-maps, .btn-dir { flex: 1; justify-content: center; }
+      .status-bar { display: none; }
+      footer { flex-direction: column; gap: 8px; text-align: center; padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-cross"></div>
+    MedRush
+  </div>
+  <div class="status-bar">
+    <div class="pulse-dot"></div>
+    Emergency Response Active
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <p class="eyebrow">Emergency Hospital Locator</p>
+    <h1>Find the right hospital<br>for every <span>emergency</span></h1>
+    <p class="hero-sub">Select your emergency type and we'll open Google Maps showing the nearest matching hospitals — tap any result to get directions.</p>
+  </section>
+
+  <div class="search-card">
+    <div class="location-strip">
+      <span class="location-icon">📍</span>
+      <span class="location-text" id="locationText">Detecting your location…</span>
+      <button class="location-btn" onclick="getLocation()">Re-detect →</button>
+    </div>
+
+    <label class="input-label">Select Emergency Type</label>
+    <div class="emergency-grid" id="chipGrid"></div>
+
+    <div class="custom-input-wrap">
+      <input class="custom-input" type="text" id="customEmergency"
+        placeholder="Or describe your emergency (e.g. snake bite, overdose…)"
+        autocomplete="off" />
+    </div>
+
+    <button class="search-btn" onclick="findHospitals()">
+      <span>🔍</span> Find Nearest Hospitals
+    </button>
+  </div>
+
+  <div class="disclaimer">
+    <span class="icon">⚠️</span>
+    <span>For life-threatening emergencies call <strong>112</strong> immediately. This tool helps locate hospitals but is not a substitute for emergency services.</span>
+  </div>
+
+  <div id="results"></div>
+</main>
+
+<footer>
+  <span>MedRush © 2026</span>
+  <span>Opens directly in Google Maps — no account needed</span>
+</footer>
+
+<script>
+  // ── EMERGENCY TYPES ──────────────────────────────────────────────────────
+  const EMERGENCIES = [
+    { label: 'Heart Attack',    icon: '❤️',  query: 'cardiology cardiac hospital',          specialty: 'CARDIOLOGY' },
+    { label: 'Stroke',          icon: '🧠',  query: 'neurology stroke hospital',             specialty: 'NEUROLOGY' },
+    { label: 'Trauma / Injury', icon: '🩹',  query: 'trauma center emergency hospital',      specialty: 'TRAUMA CENTER' },
+    { label: 'Burns',           icon: '🔥',  query: 'burn unit hospital',                    specialty: 'BURN UNIT' },
+    { label: 'Maternity',       icon: '🤰',  query: 'maternity hospital gynecology',         specialty: 'MATERNITY' },
+    { label: 'Pediatric',       icon: '👶',  query: 'children pediatric hospital',           specialty: 'PEDIATRICS' },
+    { label: 'Poisoning',       icon: '☠️',  query: 'poison toxicology emergency hospital',  specialty: 'TOXICOLOGY' },
+    { label: 'Eye Injury',      icon: '👁️',  query: 'eye hospital ophthalmology',            specialty: 'OPHTHALMOLOGY' },
+    { label: 'Mental Health',   icon: '🧩',  query: 'psychiatric mental health hospital',    specialty: 'PSYCHIATRY' },
+    { label: 'Respiratory',     icon: '🫁',  query: 'pulmonology respiratory hospital',      specialty: 'PULMONOLOGY' },
+    { label: 'Orthopaedic',     icon: '🦴',  query: 'orthopaedic bone fracture hospital',    specialty: 'ORTHOPAEDICS' },
+    { label: 'Dental',          icon: '🦷',  query: 'dental emergency hospital',             specialty: 'DENTAL' },
+  ];
+
+  // ── STATE ────────────────────────────────────────────────────────────────
+  let userLat = null, userLng = null;
+  let selectedChip = null;
+
+  // ── BUILD CHIPS ──────────────────────────────────────────────────────────
+  const grid = document.getElementById('chipGrid');
+  EMERGENCIES.forEach((em, i) => {
+    const div = document.createElement('div');
+    div.className = 'em-chip';
+    div.innerHTML = `<span class="chip-icon">${em.icon}</span>${em.label}`;
+    div.addEventListener('click', () => {
+      document.querySelectorAll('.em-chip').forEach(c => c.classList.remove('active'));
+      div.classList.add('active');
+      selectedChip = i;
+      document.getElementById('customEmergency').value = '';
+    });
+    grid.appendChild(div);
+  });
+
+  // ── GEOLOCATION ──────────────────────────────────────────────────────────
+  function getLocation() {
+    const txt = document.getElementById('locationText');
+    txt.textContent = 'Detecting…';
+    if (!navigator.geolocation) {
+      txt.textContent = 'Geolocation not supported by your browser.';
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        userLat = pos.coords.latitude;
+        userLng = pos.coords.longitude;
+        txt.textContent = `📍 ${userLat.toFixed(5)}, ${userLng.toFixed(5)} — Location ready`;
+      },
+      () => {
+        txt.textContent = 'Could not detect location — please allow access and retry.';
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
+  getLocation();
+
+  // ── GOOGLE MAPS URL BUILDERS (using official Maps URLs API) ──────────────
+  // Docs: https://developers.google.com/maps/documentation/urls/get-started
+
+  // Search for places near user's coordinates
+  function mapsSearchURL(query, lat, lng) {
+    const q = encodeURIComponent(query);
+    if (lat != null && lng != null) {
+      // api=1 search with location bias via center coords
+      return `https://www.google.com/maps/search/?api=1&query=${q}&query_place_id=&center=${lat},${lng}`;
+    }
+    return `https://www.google.com/maps/search/?api=1&query=${q}`;
+  }
+
+  // Directions from user's coords to destination
+  function mapsDirectionsURL(destination, lat, lng) {
+    const dest = encodeURIComponent(destination);
+    if (lat != null && lng != null) {
+      return `https://www.google.com/maps/dir/?api=1&origin=${lat},${lng}&destination=${dest}&travelmode=driving`;
+    }
+    return `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=driving`;
+  }
+
+  // ── FIND HOSPITALS ───────────────────────────────────────────────────────
+  function findHospitals() {
+    const customVal = document.getElementById('customEmergency').value.trim();
+
+    let query = '';
+    let emergencyLabel = '';
+    let specialty = 'EMERGENCY';
+
+    if (customVal) {
+      query = customVal + ' hospital';
+      emergencyLabel = customVal;
+      specialty = customVal.toUpperCase();
+    } else if (selectedChip !== null) {
+      const em = EMERGENCIES[selectedChip];
+      query = em.query;
+      emergencyLabel = em.label;
+      specialty = em.specialty;
+    } else {
+      alert('Please select an emergency type or describe your emergency.');
+      return;
+    }
+
+    if (userLat == null || userLng == null) {
+      const proceed = confirm('Location not detected yet. Continue without precise location? (Results may be less accurate.)');
+      if (!proceed) { getLocation(); return; }
+    }
+
+    showLoading();
+    setTimeout(() => renderCards(query, emergencyLabel, specialty), 900);
+  }
+
+  // ── RENDER RESULT CARDS ──────────────────────────────────────────────────
+  function renderCards(baseQuery, emergencyLabel, specialty) {
+    const lat = userLat, lng = userLng;
+
+    const variants = [
+      {
+        rank: '★', top: true,
+        name: `Nearest ${emergencyLabel} Hospital`,
+        desc: 'Closest match to your current location',
+        badgeClass: 'badge-green', badgeText: '● Closest',
+        query: `${baseQuery} near me`,
+        dirQuery: `${emergencyLabel} hospital near me`,
+      },
+      {
+        rank: '#2', top: false,
+        name: `24-Hour ${emergencyLabel} Emergency`,
+        desc: 'Hospitals open 24 hours with emergency unit',
+        badgeClass: 'badge-green', badgeText: '● Open 24/7',
+        query: `24 hour emergency ${baseQuery}`,
+        dirQuery: `24 hour ${emergencyLabel} emergency hospital`,
+      },
+      {
+        rank: '#3', top: false,
+        name: `${specialty} Specialist Hospital`,
+        desc: 'Hospitals with dedicated specialist department',
+        badgeClass: 'badge-amber', badgeText: '● Specialist',
+        query: `${specialty.toLowerCase()} specialist hospital`,
+        dirQuery: `${specialty.toLowerCase()} specialist hospital`,
+      },
+      {
+        rank: '#4', top: false,
+        name: 'Government / Public Hospital',
+        desc: 'Government hospital with emergency ward nearby',
+        badgeClass: 'badge-amber', badgeText: '● Public',
+        query: `government public hospital emergency`,
+        dirQuery: 'government hospital emergency',
+      },
+    ];
+
+    const el = document.getElementById('results');
+    let html = `
+      <div class="results-header">
+        <span class="results-title">Hospitals — ${emergencyLabel}</span>
+        <span class="results-count">4 categories</span>
+      </div>`;
+
+    variants.forEach(v => {
+      const searchUrl     = mapsSearchURL(v.query, lat, lng);
+      const directionsUrl = mapsDirectionsURL(v.dirQuery, lat, lng);
+
+      html += `
+        <div class="hospital-card ${v.top ? 'top-pick' : ''}">
+          <div class="hospital-rank">${v.rank}</div>
+          <div class="hospital-body">
+            <div class="hospital-name">${v.name}</div>
+            <div class="hospital-specialty">${specialty}</div>
+            <div class="hospital-meta">
+              <span class="badge ${v.badgeClass}">${v.badgeText}</span>
+              <span class="meta-item">📍 ${lat && lng ? 'Near your location' : 'Location not set'}</span>
+            </div>
+            <div class="meta-item" style="margin-top:6px;font-size:0.75rem;">${v.desc}</div>
+          </div>
+          <div class="hospital-actions">
+            <a class="btn-maps" href="${searchUrl}" target="_blank" rel="noopener">
+              🗺 View on Maps
+            </a>
+            <a class="btn-dir" href="${directionsUrl}" target="_blank" rel="noopener">
+              🧭 Directions
+            </a>
+          </div>
+        </div>`;
+    });
+
+    el.innerHTML = html;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // ── LOADING STATE ────────────────────────────────────────────────────────
+  function showLoading() {
+    document.getElementById('results').innerHTML = `
+      <div class="loading-overlay">
+        <div class="ecg-line">
+          <svg viewBox="0 0 200 48" xmlns="http://www.w3.org/2000/svg">
+            <polyline class="ecg-path" points="0,24 30,24 50,24 60,4 70,44 80,14 90,34 100,24 200,24"/>
+          </svg>
+        </div>
+        <p class="loading-text">Scanning nearby hospitals…</p>
+      </div>`;
+  }
+</script>
+</body>
+</html>
